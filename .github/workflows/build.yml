@@ -1,0 +1,39 @@
+name: Temporary Tunnel Server
+on: 
+  workflow_dispatch: # Allows manual trigger button inside your GitHub Actions interface
+
+jobs:
+  run-tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup System Environment
+        run: |
+          # 1. Update package registry and install dependencies
+          sudo apt-get update
+          sudo apt-get install -y openssh-server python3-pip python3-websockets
+          
+          # 2. Configure SSH parameters to allow tunneling payloads natively
+          sudo sed -i 's/#AllowTcpForwarding yes/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
+          sudo sed -i 's/#GatewayPorts no/GatewayPorts yes/g' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+          
+          # 3. Establish account credentials for your injector application profile
+          # Username: Praxis16 | Password: Praxis16
+          echo "Praxis16:Praxis16" | sudo chpasswd
+
+      - name: Launch Infrastructure
+        run: |
+          # 1. Start the dedicated Python WebSocket server in the background
+          python3 ws.py &
+          
+          # 2. Wait briefly to verify socket binding stability
+          sleep 3
+          
+          # 3. Create a public network exposure mapping using localhost.run over SSH
+          echo "=========================================================="
+          echo "=== YOUR TEMPORARY PUBLIC HOST ADDRESS WILL APPEAR BELOW ==="
+          echo "=========================================================="
+          ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run
