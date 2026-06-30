@@ -5,19 +5,20 @@ import select
 LISTEN_PORT = 8080
 TARGET_HOST = "127.0.0.1"
 TARGET_PORT = 22
-BUFFER_SIZE = 131072
+BUFFER_SIZE = 131072 
 
 def handle_client(client_socket):
     try:
         request_data = client_socket.recv(4096).decode('utf-8', errors='ignore')
+        
         if "Upgrade: websocket" in request_data or "upgrade: websocket" in request_data:
             handshake_response = (
                 "HTTP/1.1 101 Switching Protocols\r\n"
                 "Upgrade: websocket\r\n"
                 "Connection: Upgrade\r\n\r\n"
             )
-          
             client_socket.sendall(handshake_response.encode('utf-8'))
+            
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.connect((TARGET_HOST, TARGET_PORT))
             
