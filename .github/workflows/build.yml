@@ -1,30 +1,47 @@
-name: Temporary Tunnel Server
-on: 
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  run-tunnel:
+  build:
+
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Configure System SSH Engine
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y openssh-server
+        sudo sed -i 's/#AllowTcpForwarding yes/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
+        sudo sed -i 's/#GatewayPorts no/GatewayPorts yes/g' /etc/ssh/sshd_config
+        sudo systemctl restart ssh
+        echo "Praxis16:Praxis16" | sudo chpasswd
 
-      - name: Setup System Environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openssh-server python3-pip python3-websockets
-          
-          # 2. Configure SSH parameters to allow tunneling payloads natively
-          sudo sed -i 's/#AllowTcpForwarding yes/AllowTcpForwarding yes/g' /etc/ssh/sshd_config
-          sudo sed -i 's/#GatewayPorts no/GatewayPorts yes/g' /etc/ssh/sshd_config
-          sudo systemctl restart ssh
-          echo "Praxis16:Praxis16" | sudo chpasswd
-
-      - name: Launch Infrastructure
-        run: |
-          python3 ws.py &
-          sleep 3
-          echo "=========================================================="
-          echo "=== YOUR TEMPORARY PUBLIC HOST ADDRESS WILL APPEAR BELOW ==="
-          echo "=========================================================="
-          ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run
+    - name: Launch Tunnel Infrastructure
+      run: |
+        python ws.py &
+        sleep 3
+        echo "=========================================================="
+        echo "=== YOUR TEMPORARY PUBLIC HOST ADDRESS WILL APPEAR BELOW ==="
+        echo "=========================================================="
+        ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run
